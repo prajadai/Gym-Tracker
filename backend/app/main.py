@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from app.database import create_db_and_tables
 from app.routers import exercises, sessions, workout_sets, auth, analytics
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title="Gym Tracker API", version="0.0.1")
 
@@ -14,6 +16,14 @@ def on_startup():
 def root():
     return {"message": "Welcome to Gym Tracker v0.0.1"}
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # tighten this to your actual frontend origin once deployed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(exercises.router, prefix="/api/v1/exercises", tags=["exercises"])

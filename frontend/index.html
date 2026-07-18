@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iron Log — Gym Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ======================= AUTH VIEW ======================= -->
+<section id="auth-view" class="view">
+  <div class="auth-card">
+    <div class="brand">
+      <span class="brand-mark">◼</span>
+      <h1>IRON LOG</h1>
+    </div>
+    <p class="brand-sub">Track the work. Watch the numbers move.</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="login">Log in</button>
+      <button class="tab-btn" data-tab="register">Register</button>
+    </div>
+
+    <form id="login-form" class="auth-form">
+      <label>Email
+        <input type="email" id="login-email" required autocomplete="email">
+      </label>
+      <label>Password
+        <input type="password" id="login-password" required autocomplete="current-password">
+      </label>
+      <button type="submit" class="btn-primary">Log in</button>
+      <p class="form-error" id="login-error"></p>
+    </form>
+
+    <form id="register-form" class="auth-form hidden">
+      <label>Email
+        <input type="email" id="register-email" required autocomplete="email">
+      </label>
+      <label>Password
+        <input type="password" id="register-password" required minlength="8" maxlength="72" autocomplete="new-password">
+      </label>
+      <button type="submit" class="btn-primary">Create account</button>
+      <p class="form-error" id="register-error"></p>
+    </form>
+  </div>
+</section>
+
+<!-- ======================= APP VIEW ======================= -->
+<section id="app-view" class="view hidden">
+  <header class="topbar">
+    <div class="brand brand-sm">
+      <span class="brand-mark">◼</span>
+      <h1>IRON LOG</h1>
+    </div>
+    <nav class="topnav">
+      <button class="nav-btn active" data-view="sessions-panel">Sessions</button>
+      <button class="nav-btn" data-view="progress-panel">Progress</button>
+    </nav>
+    <button id="logout-btn" class="btn-ghost">Log out</button>
+  </header>
+
+  <main class="content">
+
+    <!-- ---- SESSIONS PANEL ---- -->
+    <div id="sessions-panel" class="panel">
+      <div class="panel-header">
+        <h2>Sessions</h2>
+        <button id="new-session-btn" class="btn-primary">+ New session</button>
+      </div>
+      <div id="sessions-list" class="sessions-list"></div>
+
+      <!-- New session form -->
+      <div id="new-session-modal" class="modal hidden">
+        <div class="modal-card">
+          <h3>New session</h3>
+          <form id="new-session-form">
+            <label>Date
+              <input type="date" id="session-date" required>
+            </label>
+            <label>Notes <span class="optional">optional</span>
+              <input type="text" id="session-notes" placeholder="Leg day, felt strong">
+            </label>
+            <div class="modal-actions">
+              <button type="button" class="btn-ghost" data-close-modal>Cancel</button>
+              <button type="submit" class="btn-primary">Create</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- SESSION DETAIL PANEL ---- -->
+    <div id="session-detail-panel" class="panel hidden">
+      <button id="back-to-sessions" class="btn-ghost back-btn">&larr; All sessions</button>
+      <div id="session-detail-content"></div>
+
+      <!-- Add set form -->
+      <div class="add-set-card">
+        <h3>Log a set</h3>
+        <form id="add-set-form">
+          <label>Exercise
+            <select id="set-exercise" required></select>
+          </label>
+          <div class="set-inputs">
+            <label>Set #
+              <input type="number" id="set-number" min="1" value="1" required>
+            </label>
+            <label>Weight (kg)
+              <input type="number" id="set-weight" min="0" step="0.5" required>
+            </label>
+            <label>Reps
+              <input type="number" id="set-reps" min="1" required>
+            </label>
+            <label>RPE <span class="optional">optional</span>
+              <input type="number" id="set-rpe" min="1" max="10" step="0.5">
+            </label>
+          </div>
+          <button type="submit" class="btn-primary">Add set</button>
+        </form>
+      </div>
+
+      <!-- New exercise (quick add) -->
+      <details class="quick-add">
+        <summary>Exercise not listed? Add a new one</summary>
+        <form id="new-exercise-form">
+          <label>Name
+            <input type="text" id="exercise-name" required placeholder="e.g. Incline Dumbbell Press">
+          </label>
+          <label>Muscle group <span class="optional">optional</span>
+            <input type="text" id="exercise-muscle-group" placeholder="chest">
+          </label>
+          <button type="submit" class="btn-secondary">Add exercise</button>
+        </form>
+      </details>
+    </div>
+
+    <!-- ---- PROGRESS PANEL ---- -->
+    <div id="progress-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Progress</h2>
+        <select id="progress-exercise-select"></select>
+      </div>
+      <div id="progress-content" class="progress-content"></div>
+    </div>
+
+  </main>
+</section>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
