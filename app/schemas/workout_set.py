@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlmodel import SQLModel
+from app.schemas.exercise import ExerciseRead
 
 
 class WorkoutSetCreate(SQLModel):
@@ -17,3 +18,7 @@ class WorkoutSetRead(SQLModel):
     weight: float
     reps: int
     rpe: Optional[float] = None
+
+
+class WorkoutSetReadWithExercise(WorkoutSetRead):
+    exercise: ExerciseRead

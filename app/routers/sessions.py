@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from app.database import get_session
-from app.schemas.session import SessionCreate, SessionRead, SessionReadWithSets
+from app.schemas.session import SessionCreate, SessionRead, SessionReadGrouped
 from app.crud import session as session_crud
 from app.auth.dependencies import get_current_user
 from app.models.user import User
@@ -29,13 +29,13 @@ def list_workout_sessions(
     return session_crud.get_sessions(db, current_user.id, skip, limit)
 
 
-@router.get("/{session_id}", response_model=SessionRead)
+@router.get("/{session_id}", response_model=SessionReadGrouped)
 def read_workout_session(
     session_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session),
 ):
-    workout_session = session_crud.get_session_for_user(db, session_id, current_user.id)
-    if not workout_session:
+    result = session_crud.get_session_grouped_by_exercise(db, session_id, current_user.id)
+    if not result:
         raise HTTPException(status_code=404, detail="Session not found")
-    return workout_session
+    return result

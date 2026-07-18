@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional
 from sqlmodel import SQLModel
-from app.schemas.workout_set import WorkoutSetRead
+
 
 class SessionCreate(SQLModel):
     date: datetime.date
@@ -14,5 +14,20 @@ class SessionRead(SQLModel):
     notes: Optional[str] = None
 
 
-class SessionReadWithSets(SessionRead):
-    sets: list[WorkoutSetRead] = []
+class SetInGroup(SQLModel):
+    id: int
+    set_number: int
+    weight: float
+    reps: int
+    rpe: Optional[float] = None
+
+
+class ExerciseGroup(SQLModel):
+    exercise_id: int
+    exercise_name: str
+    muscle_group: Optional[str] = None
+    sets: list[SetInGroup]
+
+
+class SessionReadGrouped(SessionRead):
+    exercises: list[ExerciseGroup] = []
