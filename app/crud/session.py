@@ -56,9 +56,13 @@ def get_session_grouped_by_exercise(db: Session, session_id: int, user_id: int) 
             )
         )
 
+    exercise_list = list(groups.values())
+
     return SessionReadGrouped(
         id=workout_session.id,
         date=workout_session.date,
         notes=workout_session.notes,
-        exercises=list(groups.values()),
+        total_exercises=len(exercise_list),
+        total_sets=sum(len(group.sets) for group in exercise_list),
+        exercises=exercise_list,
     )

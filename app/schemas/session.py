@@ -31,3 +31,8 @@ class ExerciseGroup(SQLModel):
 
 class SessionReadGrouped(SessionRead):
     exercises: list[ExerciseGroup] = []
+
+class SessionReadGrouped(SessionRead):
+    total_exercises: int
+    total_sets: int
+    exercises: list[ExerciseGroup] = []
