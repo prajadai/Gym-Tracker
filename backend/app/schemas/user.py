@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel
 from pydantic import Field
+import datetime
 
 class UserCreate(SQLModel):
     email: str
@@ -9,3 +10,9 @@ class UserCreate(SQLModel):
 class UserRead(SQLModel):
     id: int
     email: str
+
+class AdminUserRead(SQLModel):
+    id: int
+    email: str
+    is_admin: bool
+    created_at: datetime.datetime
