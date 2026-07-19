@@ -17,3 +17,6 @@ bcrypt==5.0.0
 
 # Required by FastAPI's OAuth2PasswordRequestForm (form-encoded login body)
 python-multipart==0.0.32
+
+# database
+psycopg2-binary==2.9.10
