@@ -12,7 +12,7 @@ def root():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://gym-tracker-1-0q0c.onrender.com/"],  # tighten this to your actual frontend origin once deployed
+    allow_origins=["https://gym-tracker-1-0q0c.onrender.com"],  # tighten this to your actual frontend origin once deployed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
