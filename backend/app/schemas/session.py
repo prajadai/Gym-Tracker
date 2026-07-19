@@ -28,10 +28,6 @@ class ExerciseGroup(SQLModel):
     muscle_group: Optional[str] = None
     sets: list[SetInGroup]
 
-
-class SessionReadGrouped(SessionRead):
-    exercises: list[ExerciseGroup] = []
-
 class SessionReadGrouped(SessionRead):
     total_exercises: int
     total_sets: int

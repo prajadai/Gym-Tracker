@@ -9,6 +9,9 @@ router = APIRouter()
 
 @router.post("/", response_model=ExerciseRead)
 def create_exercise(exercise_in: ExerciseCreate, session: Session = Depends(get_session)):
+    existing = exercise_crud.get_exercise_by_name(session, exercise_in.name)
+    if existing:
+        raise HTTPException(status_code=400, detail="Exercise name already exists")
     return exercise_crud.create_exercise(session, exercise_in)
 
 

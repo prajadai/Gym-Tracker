@@ -15,5 +15,9 @@ def get_exercise(session: Session, exercise_id: int) -> Exercise | None:
     return session.get(Exercise, exercise_id)
 
 
+def get_exercise_by_name(session: Session, name: str) -> Exercise | None:
+    return session.exec(select(Exercise).where(Exercise.name == name)).first()
+
+
 def get_exercises(session: Session, skip: int = 0, limit: int = 100) -> list[Exercise]:
     return session.exec(select(Exercise).offset(skip).limit(limit)).all()
