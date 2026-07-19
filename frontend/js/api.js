@@ -1,6 +1,6 @@
 // api.js — thin wrapper around fetch() for talking to the FastAPI backend
 
-const API_BASE = "http://127.0.0.1:8000/api/v1";
+const API_BASE = "https://gym-tracker-wvu6.onrender.com/api/v1";
 
 const Api = {
   getToken() {
