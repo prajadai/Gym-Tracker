@@ -74,6 +74,15 @@ el("logout-btn").addEventListener("click", () => {
   showAuthView();
 });
 
+// Fires the instant a token expires (either from the scheduled expiry
+// timer in api.js, or a 401 from any request) — bounces straight back
+// to the login screen with no intermediate "loading" state.
+Api.onSessionExpired = () => {
+  if (!el("auth-view").classList.contains("hidden")) return; // already there
+  showAuthView();
+  showToast("Session expired. Please log in again.", true);
+};
+
 // ---------------- Top nav ----------------
 document.querySelectorAll(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -311,8 +320,17 @@ async function renderProgress(exerciseId) {
 }
 
 // ---------------- Boot ----------------
-if (Api.getToken()) {
+// Check the token's exp claim locally before rendering anything — this
+// is synchronous, so there's no network round trip and no "loading
+// session…" flash. An expired (or missing) token goes straight to the
+// login screen; a valid one also gets its auto-expiry timer armed
+// (done inside Api.setToken/isTokenValid) so a session that expires
+// while the app is open kicks the user out immediately, not just on
+// their next API call.
+if (Api.isTokenValid()) {
+  Api._scheduleExpiryLogout(Api.getToken());
   showAppView();
 } else {
+  Api.clearToken();
   showAuthView();
 }

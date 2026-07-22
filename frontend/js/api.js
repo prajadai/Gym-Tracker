@@ -1,16 +1,63 @@
 // api.js — thin wrapper around fetch() for talking to the FastAPI backend
 
-const API_BASE = "https://gym-tracker-wvu6.onrender.com/api/v1";
+// const API_BASE = "https://gym-tracker-wvu6.onrender.com/api/v1";
+const isLocal = ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+const API_BASE = isLocal
+  ? "http://127.0.0.1:8000/api/v1"
+  : "https://gym-tracker-wvu6.onrender.com/api/v1";
 
 const Api = {
+  // Set by app.js at boot — called any time we detect the session is
+  // gone (expired locally, or the server rejected the token with 401).
+  onSessionExpired: null,
+
   getToken() {
     return localStorage.getItem("iron_log_token");
   },
   setToken(token) {
     localStorage.setItem("iron_log_token", token);
+    this._scheduleExpiryLogout(token);
   },
   clearToken() {
     localStorage.removeItem("iron_log_token");
+    clearTimeout(this._expiryTimer);
+  },
+
+  // Decodes the JWT payload without verifying the signature (we don't
+  // need to — the server verifies it; this is purely so the UI can react
+  // to expiry without waiting on a failed network request).
+  _decodeJwt(token) {
+    try {
+      const payload = token.split(".")[1];
+      const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+      return JSON.parse(json);
+    } catch (_) {
+      return null;
+    }
+  },
+
+  // Returns true only if we have a token AND its exp claim is in the future.
+  isTokenValid() {
+    const token = this.getToken();
+    if (!token) return false;
+    const payload = this._decodeJwt(token);
+    if (!payload || !payload.exp) return false;
+    return payload.exp * 1000 > Date.now();
+  },
+
+  // Schedules an automatic logout for the exact moment the current token
+  // expires, so a session doesn't just silently die mid-use — the user
+  // gets bounced to the login screen the instant it happens.
+  _scheduleExpiryLogout(token) {
+    clearTimeout(this._expiryTimer);
+    const payload = this._decodeJwt(token);
+    if (!payload || !payload.exp) return;
+    const msUntilExpiry = payload.exp * 1000 - Date.now();
+    if (msUntilExpiry <= 0) return;
+    this._expiryTimer = setTimeout(() => {
+      this.clearToken();
+      if (this.onSessionExpired) this.onSessionExpired();
+    }, msUntilExpiry);
   },
 
   async request(path, { method = "GET", body = null, auth = true, form = false } = {}) {
@@ -29,6 +76,7 @@ const Api = {
 
     if (res.status === 401) {
       this.clearToken();
+      if (auth && this.onSessionExpired) this.onSessionExpired();
       throw new ApiError("Session expired. Please log in again.", 401);
     }
 
