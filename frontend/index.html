@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -69,7 +70,29 @@
         <h2>Sessions</h2>
         <button id="new-session-btn" class="btn-primary">+ New session</button>
       </div>
-      <div id="sessions-list" class="sessions-list"></div>
+
+      <div class="sessions-layout">
+        <div class="sessions-main">
+          <div id="sessions-list" class="sessions-list"></div>
+        </div>
+
+        <aside class="sessions-sidebar">
+          <div class="calendar-card">
+            <div class="calendar-header">
+              <button type="button" id="cal-prev" class="cal-nav-btn" aria-label="Previous month">&larr;</button>
+              <div class="calendar-title" id="cal-title">—</div>
+              <button type="button" id="cal-next" class="cal-nav-btn" aria-label="Next month">&rarr;</button>
+            </div>
+            <div class="calendar-weekdays">
+              <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+            </div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <div class="calendar-legend">
+              <span class="legend-dot"></span> Session recorded
+            </div>
+          </div>
+        </aside>
+      </div>
 
       <!-- New session form -->
       <div id="new-session-modal" class="modal hidden">
@@ -141,6 +164,10 @@
       <div class="panel-header">
         <h2>Progress</h2>
         <select id="progress-exercise-select"></select>
+      </div>
+      <div class="range-toggle" id="progress-range-toggle">
+        <button type="button" class="range-btn active" data-range="1m">1 Month</button>
+        <button type="button" class="range-btn" data-range="6m">6 Months</button>
       </div>
       <div id="progress-content" class="progress-content"></div>
     </div>

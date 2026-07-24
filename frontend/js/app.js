@@ -3,6 +3,8 @@
 const el = (id) => document.getElementById(id);
 let currentSessionId = null;
 let exercisesCache = [];
+let sessionsCache = [];
+let calendarViewDate = new Date(); // month currently shown in the calendar widget
 
 // ---------------- Toast ----------------
 function showToast(message, isError = false) {
@@ -97,6 +99,9 @@ async function loadSessions() {
   list.innerHTML = "<p class='empty-state'>Loading…</p>";
   try {
     const sessions = await Api.listSessions();
+    sessionsCache = sessions;
+    renderCalendar();
+
     if (!sessions.length) {
       list.innerHTML = "<div class='empty-state'>No sessions yet. Log your first workout to get started.</div>";
       return;
@@ -107,6 +112,7 @@ async function loadSessions() {
     sessions.forEach((s) => {
       const card = document.createElement("div");
       card.className = "session-card";
+      card.dataset.date = s.date;
       card.innerHTML = `
         <div>
           <div class="session-card-date">${formatDate(s.date)}</div>
@@ -120,6 +126,89 @@ async function loadSessions() {
     showToast(err.message, true);
   }
 }
+
+// ---------------- Calendar ----------------
+function renderCalendar() {
+  const grid = el("calendar-grid");
+  const title = el("cal-title");
+  const year = calendarViewDate.getFullYear();
+  const month = calendarViewDate.getMonth(); // 0-indexed
+
+  title.textContent = calendarViewDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  // Map of "YYYY-MM-DD" -> sessions recorded that day
+  const byDate = {};
+  sessionsCache.forEach((s) => {
+    (byDate[s.date] = byDate[s.date] || []).push(s);
+  });
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startWeekday = firstOfMonth.getDay(); // 0 = Sunday
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const todayStr = toDateKey(new Date());
+
+  let html = "";
+
+  // Leading blanks so day 1 lands under the correct weekday
+  for (let i = 0; i < startWeekday; i++) {
+    html += `<div class="calendar-day is-empty"></div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = toDateKey(new Date(year, month, day));
+    const hasSession = !!byDate[dateKey];
+    const isToday = dateKey === todayStr;
+    const classes = ["calendar-day"];
+    if (hasSession) classes.push("has-session");
+    if (isToday) classes.push("is-today");
+
+    html += `<div class="${classes.join(" ")}" data-date="${dateKey}" title="${hasSession ? `${byDate[dateKey].length} session${byDate[dateKey].length > 1 ? "s" : ""} recorded` : ""}">${day}</div>`;
+  }
+
+  grid.innerHTML = html;
+
+  grid.querySelectorAll(".calendar-day.has-session").forEach((cell) => {
+    cell.addEventListener("click", () => handleCalendarDayClick(cell.dataset.date, byDate[cell.dataset.date]));
+  });
+}
+
+function toDateKey(dateObj) {
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const d = String(dateObj.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function handleCalendarDayClick(dateKey, sessionsOnDay) {
+  if (sessionsOnDay.length === 1) {
+    openSessionDetail(sessionsOnDay[0].id);
+    return;
+  }
+  // Multiple sessions on the same day — jump to the list and flash them
+  const cards = document.querySelectorAll(`.session-card[data-date="${dateKey}"]`);
+  if (!cards.length) return;
+  cards[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  cards.forEach((card) => {
+    card.style.transition = "none";
+    card.style.borderColor = "var(--accent)";
+    card.style.background = "var(--surface-raised)";
+    setTimeout(() => {
+      card.style.transition = "border-color 0.6s ease, background 0.6s ease";
+      card.style.borderColor = "";
+      card.style.background = "";
+    }, 50);
+  });
+}
+
+el("cal-prev").addEventListener("click", () => {
+  calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1);
+  renderCalendar();
+});
+el("cal-next").addEventListener("click", () => {
+  calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1);
+  renderCalendar();
+});
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -265,6 +354,10 @@ el("add-set-form").addEventListener("submit", async (e) => {
 });
 
 // ---------------- Progress panel ----------------
+let currentProgressData = null; // full history for the currently selected exercise
+let currentProgressRange = "1m"; // "1m" | "6m"
+let progressChart = null; // Chart.js instance, so we can destroy/rebuild on update
+
 async function loadProgressPanel() {
   const select = el("progress-exercise-select");
   try {
@@ -286,25 +379,61 @@ el("progress-exercise-select").addEventListener("change", (e) => {
   renderProgress(parseInt(e.target.value, 10));
 });
 
+// Range toggle just re-filters/redraws already-fetched data — no refetch needed.
+document.querySelectorAll(".range-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".range-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentProgressRange = btn.dataset.range;
+    drawProgress();
+  });
+});
+
 async function renderProgress(exerciseId) {
   const container = el("progress-content");
   container.innerHTML = "<p class='empty-state'>Loading…</p>";
   try {
-    const data = await Api.getExerciseProgress(exerciseId);
-    if (!data.history.length) {
-      container.innerHTML = "<div class='empty-state'>No sets logged for this exercise yet.</div>";
-      return;
-    }
-    let html = `
-      <div class="progress-summary">
-        <div class="pb-block">
-          <div class="pb-value">${data.personal_best_weight}kg</div>
-          <div class="pb-label">Personal best</div>
-        </div>
+    currentProgressData = await Api.getExerciseProgress(exerciseId);
+    drawProgress();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function filterHistoryByRange(history, range) {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - (range === "6m" ? 6 : 1));
+  return history.filter((point) => new Date(point.date + "T00:00:00") >= cutoff);
+}
+
+function drawProgress() {
+  const container = el("progress-content");
+  const data = currentProgressData;
+
+  if (!data || !data.history.length) {
+    container.innerHTML = "<div class='empty-state'>No sets logged for this exercise yet.</div>";
+    return;
+  }
+
+  const filtered = filterHistoryByRange(data.history, currentProgressRange);
+
+  let html = `
+    <div class="progress-summary">
+      <div class="pb-block">
+        <div class="pb-value">${data.personal_best_weight}kg</div>
+        <div class="pb-label">Personal best</div>
       </div>
-      <div class="progress-history">
-    `;
-    [...data.history].reverse().forEach((point) => {
+    </div>
+    <div class="progress-chart-card">
+      <canvas id="progress-chart-canvas"></canvas>
+    </div>
+  `;
+
+  if (!filtered.length) {
+    html += `<div class="empty-state">No sets logged in this time frame.</div>`;
+  } else {
+    html += `<div class="progress-history">`;
+    [...filtered].reverse().forEach((point) => {
       html += `<div class="progress-row">
         <span class="row-date">${formatDate(point.date)}</span>
         <span class="row-max">${point.max_weight}kg</span>
@@ -313,10 +442,85 @@ async function renderProgress(exerciseId) {
       </div>`;
     });
     html += `</div>`;
-    container.innerHTML = html;
-  } catch (err) {
-    showToast(err.message, true);
   }
+
+  container.innerHTML = html;
+  renderProgressChart(filtered);
+}
+
+function renderProgressChart(points) {
+  const canvas = el("progress-chart-canvas");
+  if (!canvas) return;
+
+  if (progressChart) {
+    progressChart.destroy();
+    progressChart = null;
+  }
+  if (!points.length) return;
+
+  const styles = getComputedStyle(document.documentElement);
+  const accent = styles.getPropertyValue("--accent").trim();
+  const accentGlow = styles.getPropertyValue("--accent-glow").trim();
+  const textMuted = styles.getPropertyValue("--text-muted").trim();
+  const border = styles.getPropertyValue("--border").trim();
+  const surfaceRaised = styles.getPropertyValue("--surface-raised").trim();
+
+  progressChart = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels: points.map((p) =>
+        new Date(p.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })
+      ),
+      datasets: [
+        {
+          label: "Max weight (kg)",
+          data: points.map((p) => p.max_weight),
+          borderColor: accent,
+          backgroundColor: accentGlow,
+          pointBackgroundColor: accent,
+          pointBorderColor: accent,
+          pointRadius: points.length > 25 ? 0 : 3,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          tension: 0.25,
+          fill: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: surfaceRaised,
+          borderColor: border,
+          borderWidth: 1,
+          titleColor: "#F3F1EC",
+          bodyColor: "#F3F1EC",
+          padding: 10,
+          displayColors: false,
+          callbacks: {
+            label: (ctx) => `${ctx.parsed.y}kg`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: border, drawTicks: false },
+          ticks: { color: textMuted, font: { family: "JetBrains Mono", size: 11 }, maxRotation: 0 },
+        },
+        y: {
+          grid: { color: border, drawTicks: false },
+          ticks: {
+            color: textMuted,
+            font: { family: "JetBrains Mono", size: 11 },
+            callback: (val) => `${val}kg`,
+          },
+        },
+      },
+    },
+  });
 }
 
 // ---------------- Boot ----------------

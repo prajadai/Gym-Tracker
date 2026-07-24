@@ -310,9 +310,15 @@ input[type="date"] { font-family: var(--font-mono); }
   background: var(--accent);
 }
 .content {
-  max-width: 780px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
+}
+/* Every panel except Sessions keeps the original single-column width;
+   Sessions alone uses the extra room for the list + calendar sidebar. */
+.panel:not(#sessions-panel) {
+  max-width: 780px;
+  margin: 0 auto;
 }
 .panel-header {
   display: flex;
@@ -338,6 +344,145 @@ input[type="date"] { font-family: var(--font-mono); }
   width: 4px;
   background: var(--accent);
   border-radius: 2px;
+}
+
+/* ---------- Sessions layout (list + calendar sidebar) ---------- */
+.sessions-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+.sessions-main {
+  flex: 1;
+  min-width: 0;
+}
+.sessions-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 5.5rem;
+}
+
+/* ---------- Calendar (compact) ---------- */
+.calendar-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 0.9rem 1rem;
+}
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.calendar-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  font-weight: 400;
+}
+.cal-nav-btn {
+  background: var(--bg-floor);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.cal-nav-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-raised); }
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-bottom: 0.25rem;
+}
+.calendar-weekdays span {
+  text-align: center;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+.calendar-day {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  border-radius: 2px;
+  border: 1px solid transparent;
+}
+.calendar-day.is-empty { visibility: hidden; }
+
+.calendar-day.has-session {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--accent-glow);
+  border-color: var(--accent-dim);
+  cursor: pointer;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.1s var(--ease);
+}
+.calendar-day.has-session:hover {
+  background: rgba(255, 90, 31, 0.28);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.calendar-day.has-session::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.calendar-day.is-today {
+  border-color: var(--border-strong);
+}
+.calendar-day.is-today::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  border: 1px dashed var(--text-faint);
+}
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.legend-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
 }
 
 /* ---------- Sessions list ---------- */
@@ -580,6 +725,45 @@ input[type="date"] { font-family: var(--font-mono); }
 /* ---------- Progress panel ---------- */
 #progress-exercise-select { min-width: 200px; }
 
+.range-toggle {
+  display: inline-flex;
+  gap: 0.3rem;
+  background: var(--bg-floor);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.25rem;
+  margin-bottom: 1.6rem;
+}
+.range-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 0.45rem 1rem;
+  border-radius: 2px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.range-btn:hover { color: var(--text); }
+.range-btn.active {
+  color: #171717;
+  background: var(--accent);
+}
+
+.progress-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.3rem 1.3rem 1rem;
+  margin-bottom: 1.6rem;
+}
+.progress-chart-card canvas {
+  max-height: 260px;
+}
+
 .progress-summary {
   display: flex;
   gap: 2.2rem;
@@ -652,6 +836,9 @@ input[type="date"] { font-family: var(--font-mono); }
   .session-card-stats { flex-wrap: wrap; gap: 0.9rem; }
   .progress-summary { gap: 1.4rem; }
   .pb-block .pb-value { font-size: 2.1rem; }
+  .sessions-layout { flex-direction: column; }
+  .sessions-sidebar { width: 100%; position: static; order: -1; }
+  .calendar-card { max-width: 260px; margin: 0 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
